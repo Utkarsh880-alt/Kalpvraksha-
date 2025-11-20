@@ -8,13 +8,12 @@
 #define STACK_CAPACITY 50
 #define DIV_BY_ZERO_SENTINEL INT_MIN 
 
-typedef enum { //a set of named integer constants to categorize our tokens.
+typedef enum { 
     TOKEN_NUMBER,
     TOKEN_OPERATOR
 } TokenType;
 
 typedef struct {
-//Starts a struct (a custom data type) to hold the actual token data.
     TokenType type;
     int value;
     char op;
