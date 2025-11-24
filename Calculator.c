@@ -49,7 +49,7 @@ int isOperator(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/';
 }
 
-int applyOp(int a, int b, char op) {
+int applyOperator(int a, int b, char op) {
     if (op == '+') return a + b;
     if (op == '-') return a - b;
     if (op == '*') return a * b;
@@ -60,10 +60,10 @@ int applyOp(int a, int b, char op) {
     return 0;
 }
 
-int infixToRPN(const char *expr, Token rpn_output[], int *rpn_count) {
+int infixToPostFix(const char *expr, Token postfix_output[], int *postfix_count) {
     Stack opStack;
     initStack(&opStack);
-    *rpn_count = 0;
+    *postfix_count = 0;
     
     const char *p = expr;
 
@@ -76,7 +76,7 @@ int infixToRPN(const char *expr, Token rpn_output[], int *rpn_count) {
                 num = num * 10 + (*p - '0');
                 p++;
             }
-            rpn_output[(*rpn_count)++] = (Token){TOKEN_NUMBER, num, 0};
+            postfix_output[(*postfix_count)++] = (Token){TOKEN_NUMBER, num, 0};
             continue;
         }
 
@@ -86,7 +86,7 @@ int infixToRPN(const char *expr, Token rpn_output[], int *rpn_count) {
             while (!isStackEmpty(&opStack) && 
                    getPrecedence(current_op) <= getPrecedence(peek(&opStack).op)) 
             {
-                rpn_output[(*rpn_count)++] = pop(&opStack);
+                postfix_output[(*postfix_count)++] = pop(&opStack);
             }
             
             push(&opStack, (Token){TOKEN_OPERATOR, 0, current_op});
@@ -94,44 +94,43 @@ int infixToRPN(const char *expr, Token rpn_output[], int *rpn_count) {
             continue;
         }
 
-        return -1;
+        return -1; 
     }
+
 
     while (!isStackEmpty(&opStack)) {
-        rpn_output[(*rpn_count)++] = pop(&opStack);
+        postfix_output[(*postfix_count)++] = pop(&opStack);
     }
-
     return 0;
 }
 
-int evaluateRPN(Token rpn_output[], int rpn_count, int *error_flag) {
+int evaluatePostFix(Token postfix_output[], int postfix_count, int *error_flag) {
     Stack valueStack;
     initStack(&valueStack);
     *error_flag = 0;
     
-    for (int i = 0; i < rpn_count; i++) {
-        Token current = rpn_output[i];
+    for (int i = 0; i < postfix_count; i++) {
+        Token current = postfix_output[i];
 
         if (current.type == TOKEN_NUMBER) {
             push(&valueStack, current);
-        } else if (current.type == TOKEN_OPERATOR) {
+        } else if (current.type == TOKEN_OPERATOR)
+        {
             if (isStackEmpty(&valueStack)) { *error_flag = 1; return 0; }
             int b = pop(&valueStack).value;
             
             if (isStackEmpty(&valueStack)) { *error_flag = 1; return 0; }
             int a = pop(&valueStack).value;
-
-            int result_val = applyOp(a, b, current.op);
+            int result_val = applyOperator(a, b, current.op);
 
             if (result_val == DIV_BY_ZERO_SENTINEL) {
-                *error_flag = 2;
+                *error_flag = 2; 
                 return 0;
             }
 
             push(&valueStack, (Token){TOKEN_NUMBER, result_val, 0});
         }
     }
-
     if (valueStack.top != 0) {
         *error_flag = 1;
         return 0;
@@ -142,8 +141,9 @@ int evaluateRPN(Token rpn_output[], int rpn_count, int *error_flag) {
 
 int main() {
     char input_expr[MAX_EXPR_LEN];
-    Token rpn_output[STACK_CAPACITY];
-    int rpn_count = 0;
+    Token postfix_output[STACK_CAPACITY];
+    int postfix_count = 0;
+    
     int error_flag = 0;
     int result = 0;
 
@@ -151,22 +151,20 @@ int main() {
     if (fgets(input_expr, MAX_EXPR_LEN, stdin) == NULL) return 0;
     input_expr[strcspn(input_expr, "\n")] = 0; 
 
-    if (infixToRPN(input_expr, rpn_output, &rpn_count) == -1) {
-        fprintf(stderr, "Error: Invalid expression.\n");
+    if (infixToPostFix(input_expr, postfix_output, &postfix_count) == -1) {
+        fprintf(stderr, "Error: Invalid character in expression.\n");
         return 1;
     }
-
-    result = evaluateRPN(rpn_output, rpn_count, &error_flag);
+    result = evaluatePostFix(postfix_output, postfix_count, &error_flag);
 
     if (error_flag == 2) {
         fprintf(stderr, "Error: Division by zero.\n");
         return 1;
     } else if (error_flag == 1) {
-        fprintf(stderr, "Error: Invalid expression.\n");
+        fprintf(stderr, "Error: Invalid expression structure (e.g., mismatched operators/operands).\n");
         return 1;
     } else {
         printf("Output: %d\n", result);
     }
-
     return 0;
 }
